@@ -18,7 +18,7 @@ One phase, run with autodeliver 0.6.0 in local mode on 2026-11-07. Every reviewe
 |---|---|
 | Design review round 1 (4 lenses in parallel) | 0 Blocking, 12 Should-fix, 12 Nits. Besides the 3 planted defects, the reviewers found real design problems in the plan: two contradictory definitions of how long a block lasts, unbounded memory from junk keys, decisions with no test, a key rule that duplicated the validator, and a goal justified by costs the code doesn't have. |
 | Plan revision 2 | Every Should-fix resolved by a plan change or a ruling; file boundary extended by ruling for D2 and D3 |
-| Design review round 2 (all 4 lenses re-run) | **All CLEAR**: 0 Blocking, 0 Should-fix, 11 Nits (6 taken, the rest ruled on in the ledger) |
+| Design review round 2 (all 4 lenses re-run) | **All CLEAR**: 0 Blocking, 0 Should-fix, 13 Nits (7 taken; the other 6 left, with reasons in the ledger) |
 | Build | 3 tasks, test-first; 4 tests became 24 |
 | Simplify pass | 1 commit (one prune helper instead of two copies) |
 | Gate round 1 (full proof run by the reviewer, twice) | **PASS**: 0 Blocking, 0 Should-fix, 2 Nits (carried to the next phase), plan 4 of 4 done |
