@@ -14,15 +14,22 @@ class ValidationError(ValueError):
         self.field = field
 
 
+def normalize_email(value):
+    """The canonical form of an email: surrounding spaces removed, lower case. Non-strings give ""."""
+    return value.strip().lower() if isinstance(value, str) else ""
+
+
 def validate_email(email):
-    if not isinstance(email, str) or not EMAIL_RE.match(email.strip()):
+    """Check the shape of the email and return its canonical form."""
+    email = normalize_email(email)
+    if not EMAIL_RE.match(email):
         raise ValidationError("email", "Enter a valid email address.")
-    return email.strip()
+    return email
 
 
 def validate_password(password):
     """Passwords need at least MIN_PASSWORD_LENGTH characters, a letter and a digit."""
-    if not isinstance(password, str) or len(password) <= MIN_PASSWORD_LENGTH:
+    if not isinstance(password, str) or len(password) < MIN_PASSWORD_LENGTH:
         raise ValidationError(
             "password", f"Use at least {MIN_PASSWORD_LENGTH} characters."
         )
