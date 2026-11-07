@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "project": "autodeliver demo",
+  "mode": "local",
+  "host": "github",
+  "profiles": [
+    "software"
+  ],
+  "repo": "Mgabr90/autodeliver-demo",
+  "main_branch": "main",
+  "branch_prefix": "work/",
+  "marker_prefix": "DEMO",
+  "label": "demo-review-fail",
+  "work_dir": ".",
+  "paths": {
+    "handoff": "docs/delivery/HANDOFF.md",
+    "decisions": "docs/delivery/DECISIONS_LOG.md",
+    "roadmap": "docs/delivery/ROADMAP.md",
+    "ledgers": "docs/delivery/ledgers/",
+    "plans": "docs/delivery/plans/",
+    "evidence": "docs/delivery/evidence/",
+    "system": "docs/delivery/SYSTEM.md"
+  },
+  "proof_full": [
+    "python -m pytest -q"
+  ],
+  "proof_touched": [
+    "python -m pytest -q"
+  ],
+  "e2e": null,
+  "review_checklist": [],
+  "locales": [
+    "en"
+  ],
+  "gates": [
+    "Publishing the service publicly needs the owner's approval in chat"
+  ],
+  "hard_limits": [
+    "Never touch production (there is none in this demo)",
+    "Test data only",
+    "Never commit or print secrets",
+    "No new runtime dependencies beyond the Python standard library"
+  ],
+  "loop": {
+    "cap": 5,
+    "fail_review_cap": 10
+  },
+  "design_review": {
+    "lenses": [
+      "zoom-out",
+      "comprehension",
+      "critic",
+      "readiness"
+    ],
+    "rounds": 2
+  },
+  "models": {
+    "strong": "claude-opus-5-5",
+    "mid": "claude-sonnet-5-5"
+  },
+  "token_log": true,
+  "token_log_path": ".autodeliver/token_log.csv"
+}
