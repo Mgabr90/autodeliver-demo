@@ -1,6 +1,6 @@
 # P01 plan: sign-up hardening
 
-Roadmap row: P01. Ledger: `docs/delivery/ledgers/P01.md`. Research brief: none (no external facts; standard library only, ruling R1). Revision 2, after design review round 1 (`docs/delivery/evidence/P01/design-review-r1-*.md`; resolutions in the ledger).
+Roadmap row: P01. Ledger: `docs/delivery/ledgers/P01.md`. Research brief: none (no external facts; standard library only, ruling R1). Revision 3: design review rounds 1 and 2 done; round 2 CLEAR on all lenses, its cheap nits folded in. Revision 2 followed design review round 1 (`docs/delivery/evidence/P01/design-review-r1-*.md`; resolutions in the ledger).
 
 ## Goal and why
 
@@ -22,17 +22,17 @@ From `docs/delivery/SYSTEM.md`: `SignupService.signup` validates input (`signup/
 ## Design
 
 - **One canonical email (validator).** A helper `normalize_email(value)` in `signup/validator.py` returns `value.strip().lower()` for a string and `""` otherwise. `validate_email` checks the shape of the normalized value and returns it. The store therefore always receives the canonical form; `UserStore` itself is unchanged.
-- **FailedAttemptLimiter** (new, `signup/ratelimit.py`): `FailedAttemptLimiter(*, max_failures=5, window_seconds=900, clock=time.monotonic)`, in-memory state `dict[str, list[float]]`.
+- **FailedAttemptLimiter** (new, `signup/ratelimit.py`): `FailedAttemptLimiter(*, max_failures=5, window_seconds=900, clock=time.monotonic)`, in-memory state `self._failures: dict[str, list[float]]` (tests may read it).
   - A failure *counts* while `now - t < window_seconds`; a failure exactly `window_seconds` old no longer counts.
   - `record_failure(key)`: appends `clock()` for the key, then prunes every key in the map, deleting keys whose list is empty after pruning.
   - `is_blocked(key)`: true when the key has `max_failures` or more counting failures. It never inserts a key; it may prune and delete the key it reads.
   - **Block length (sliding window):** a key is unblocked as soon as fewer than `max_failures` of its failures still count, that is `window_seconds` after the oldest of its last `max_failures` failures. Blocked attempts record nothing.
-- **SignupService** gets an optional `limiter` argument; when none is given, `__init__` builds a new `FailedAttemptLimiter()` (inside `__init__`, never as a default argument value, so instances don't share state). `signup(email, password)`:
+- **SignupService** becomes `__init__(self, store=None, mailer=None, limiter=None)`, so existing positional callers keep working; when none is given, `__init__` builds a new `FailedAttemptLimiter()` (inside `__init__`, never as a default argument value, so instances don't share state). `signup(email, password)`:
   1. Validate the email shape (`validate_email`). On failure, return the validation result. Nothing is recorded (R4).
   2. `key` = the canonical email. If `limiter.is_blocked(key)`: return the blocked result (R5) without checking the password or touching the store.
   3. Validate the password. On failure, `record_failure(key)` and return the validation result.
   4. Add to the store. On `DuplicateEmail`, `record_failure(key)` and return the duplicate result (unchanged wording).
-  5. Welcome email: if a mailer is configured, call it; set `welcome_sent = True` only if the call returned without raising. If it raises, log a warning, leave `welcome_sent` false, and still return success (the account exists). With no mailer, `welcome_sent` stays false.
+  5. Welcome email: if a mailer is configured, call it; set `welcome_sent = True` only if the call returned without raising. If it raises an `Exception`, log a warning on the module logger (`logging.getLogger(__name__)`, as today), leave `welcome_sent` false, and still return success (the account exists). With no mailer, `welcome_sent` stays false.
   6. A successful sign-up records nothing and does not reset the key.
 
 ## Alternatives considered
@@ -105,11 +105,11 @@ Validator (`tests/test_signup.py`):
 Service (`tests/test_signup.py`, valid password `"orange123x"`):
 - **S1:** five sign-ups for one email with a too-short password, then a sixth with a valid password: the sixth gets the R5 result and no user is stored (`store.count() == 0`).
 - **S2:** duplicates count: one success, then five duplicate attempts, then a seventh attempt: blocked (R5).
-- **S3:** a blocked attempt records nothing: after the block starts at t=0 to 400 (one failure per 100 s), extra attempts at t=500 and t=600 don't extend it; at t=900 the email is not blocked.
-- **S4:** after expiry the email can sign up (fake clock past the window).
+- **S3:** a blocked attempt records nothing: failures at t=0, 100, 200, 300, 400 block the email; extra attempts at t=500 and t=600 don't extend it; at t=900 the email is not blocked.
+- **S4:** after expiry the email can sign up: failures at t=0 to 400 (every 100 s), then at t=900 a valid sign-up succeeds.
 - **S5:** a case variant is a duplicate: `"Bo@Example.com"`, then `"bo@example.com"`: the second gets the R7 result, `store.count() == 1`.
 - **S6:** case variants share one limiter key: failures under `"Cy@Example.com"` and `"cy@example.com"` add up to a block.
 - **S7:** a malformed email records nothing (six malformed attempts, then a valid sign-up for a well-formed email succeeds).
 - **S8:** no mailer: the account is created and `welcome_sent` is `False`.
 - **S9:** a mailer that raises: the result is `ok`, the account exists, and `welcome_sent` is `False`. A mailer that succeeds: `welcome_sent` is `True` (the existing test).
-- **S10:** a successful sign-up records no failure (four failures, one success for another email, then one more failure for the first email: blocked; four failures, then a success for the same email: the count is unchanged).
+- **S10:** a successful sign-up records no failure (four failures, one success for another email, then one more failure for the first email: blocked; four failures, then a success for the same email, then one more failure: blocked, so the success neither reset nor added to the count).
