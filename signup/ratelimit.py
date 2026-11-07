@@ -15,26 +15,22 @@ class FailedAttemptLimiter:
         self._clock = clock
         self._failures = {}
 
-    def _recent(self, times, now):
-        return [t for t in times if now - t < self.window_seconds]
+    def _prune(self, key, now):
+        """Keep only the key's counting failures; delete the key if none are left. Returns them."""
+        recent = [t for t in self._failures.get(key, ()) if now - t < self.window_seconds]
+        if recent:
+            self._failures[key] = recent
+        else:
+            self._failures.pop(key, None)
+        return recent
 
     def record_failure(self, key):
         now = self._clock()
         self._failures.setdefault(key, []).append(now)
         for k in list(self._failures):
-            recent = self._recent(self._failures[k], now)
-            if recent:
-                self._failures[k] = recent
-            else:
-                del self._failures[k]
+            self._prune(k, now)
 
     def is_blocked(self, key):
-        times = self._failures.get(key)
-        if times is None:
+        if key not in self._failures:
             return False
-        recent = self._recent(times, self._clock())
-        if recent:
-            self._failures[key] = recent
-        else:
-            del self._failures[key]
-        return len(recent) >= self.max_failures
+        return len(self._prune(key, self._clock())) >= self.max_failures
