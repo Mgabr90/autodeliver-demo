@@ -1,6 +1,6 @@
 # autodeliver demo: one phase, start to PASS
 
-This repo is a small, real run of [autodeliver](https://github.com/Mgabr90/autonomous-delivery) 0.6.0 on a toy sign-up service (Python, pytest only). One phase, P01, goes through the whole loop: the plan is written as a design doc, four fresh "goldfish" reviewers check it before any code is written, the work is built test-first, and an independent gate reviews it, fails it until the findings are fixed, then passes it.
+This repo is a small, real run of [autodeliver](https://github.com/Mgabr90/autonomous-delivery) 0.6.0 on a toy sign-up service (Python, pytest only). One phase, P01, goes through the whole loop: the plan is written as a design doc, four fresh "goldfish" reviewers check it before any code is written, the work is built test-first, and an independent gate reviews the result and runs the full proof itself. In this run the design review caught all three planted defects before any code was written, so the gate passed in round 1. The FAIL, fix and re-review path is not exercised here; `RESULTS.md` has the details and the caveats.
 
 The starting code contains **planted defects**, so the reviewers have something real to catch. The list was committed only at the very end (`docs/delivery/evidence/P01/planted-defects.md`), after every review had run. Every design review and every gate verdict in `docs/delivery/evidence/P01/` is the verbatim reply of a separate, fresh Claude Code process (`claude -p`) that saw only the files, never the builder's reasoning. Nothing in them was hand-written or edited.
 
