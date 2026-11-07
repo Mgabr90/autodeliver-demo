@@ -1,0 +1,31 @@
+from signup.service import SignupService
+from signup.validator import ValidationError, validate_email, validate_password
+
+import pytest
+
+
+def test_valid_signup_creates_account_and_sends_welcome():
+    sent = []
+    svc = SignupService(mailer=sent.append)
+    result = svc.signup("ana@example.com", "orange123x")
+    assert result.ok
+    assert sent == ["ana@example.com"]
+    assert svc.store.get("ana@example.com")["welcome_sent"] is True
+
+
+def test_bad_email_is_rejected():
+    with pytest.raises(ValidationError):
+        validate_email("not-an-email")
+
+
+def test_password_needs_a_digit():
+    with pytest.raises(ValidationError):
+        validate_password("onlyletterslong")
+
+
+def test_same_email_twice_is_refused():
+    svc = SignupService()
+    assert svc.signup("bo@example.com", "orange123x").ok
+    second = svc.signup("bo@example.com", "orange123x")
+    assert not second.ok
+    assert second.error_field == "email"
